@@ -148,7 +148,8 @@ function genMap(A){
  for(let y=0;y<qh;y++)for(let x=0;x<qw;x++){const v=g[y][x];g[y][COLS-1-x]=v;g[ROWS-1-y][x]=v;g[ROWS-1-y][COLS-1-x]=v;}
  for(let x=0;x<COLS;x++){g[0][x]=4;g[ROWS-1][x]=4;}
  for(let y=0;y<ROWS;y++){g[y][0]=4;g[y][COLS-1]=4;}
- return g;
+ return  g;
+  for(let x=1;x<COLS-1;x++)for(const y of[9,10])if(isSolid(g[y][x]))g[y][x]=0;
 }
 const isSolid=t=>t===1||t===3||t===4;
 function tileAt(x,y){const tx=x/TS|0,ty=y/TS|0;if(x<0||y<0||tx>=COLS||ty>=ROWS)return 4;return G.grid[ty][tx];}
