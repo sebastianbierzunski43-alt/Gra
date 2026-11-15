@@ -1,1 +1,10 @@
 
+<!DOCTYPE html>
+<html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
+<body style="background:#1b1140;color:#fff;font:20px sans-serif">Ładowanie...
+<script>
+fetch('index.html').then(r=>r.text()).then(t=>{
+ t=t.replace('</body>','<script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"><\/script><script src="multi.js"><\/script></body>');
+ document.open();document.write(t);document.close();
+}).catch(e=>document.body.textContent='Błąd: '+e);
+</script></body></html>
