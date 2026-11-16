@@ -2,12 +2,20 @@ const NET={role:'solo',peer:null,conns:[],host:null,code:'',snapT:0,inpT:0};
 const CH='ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
 const PID=c=>'brawl-arena-'+c;
 const st=s=>{$('#mpst').textContent=s;};
+const PCFG={debug:0,config:{iceTransportPolicy:'all',iceCandidatePoolSize:4,iceServers:[
+ {urls:'stun:stun.l.google.com:19302'},
+ {urls:'stun:stun1.l.google.com:19302'},
+ {urls:'stun:global.stun.twilio.com:3478'},
+ {urls:'turn:openrelay.metered.ca:80',username:'openrelayproject',credential:'openrelayproject'},
+ {urls:'turn:openrelay.metered.ca:443',username:'openrelayproject',credential:'openrelayproject'},
+ {urls:'turn:openrelay.metered.ca:443?transport=tcp',username:'openrelayproject',credential:'openrelayproject'}
+]}};
 
 /* UI */
 const mp=document.createElement('div');mp.id='mp2';mp.className='screen glow';
 mp.innerHTML='<div class="bar"><button class="btn red small" id="mpback">◀</button><div class="h2 ol">ONLINE</div></div>'+
 '<button class="btn green" id="mphost">ZAŁÓŻ POKÓJ</button>'+
-'<div class="row"><input id="mpcode" maxlength="4" placeholder="KOD" style="width:6em;font:inherit;font-size:24px;text-align:center;text-transform:uppercase;border-radius:12px;border:4px solid #14102b"><button class="btn blue" id="mpjoin">DOŁĄCZ</button></div>'+
+'<div class="row"><input id="mpcode" maxlength="4" autocapitalize="characters" autocomplete="off" placeholder="KOD" style="width:6em;font:inherit;font-size:24px;text-align:center;text-transform:uppercase;border-radius:12px;border:4px solid #14102b"><button class="btn blue" id="mpjoin">DOŁĄCZ</button></div>'+
 '<div class="sub ol" id="mpst" style="white-space:pre-line;text-align:center"></div>'+
 '<button class="btn green" id="mpstart" style="display:none">START</button>';
 document.body.appendChild(mp);
@@ -25,30 +33,35 @@ $('#again').onclick=()=>{if(NET.role==='host')hostStart();else if(NET.role==='cl
 function netStop(){
  try{NET.conns.forEach(o=>o.c.close());if(NET.host)NET.host.close();if(NET.peer)NET.peer.destroy();}catch(e){}
  NET.peer=null;NET.host=null;NET.conns=[];NET.role='solo';
+ $('#mpstart').style.display='none';
 }
 function players(){return 1+NET.conns.filter(o=>!o.gone).length;}
+function roomTxt(){return 'KOD POKOJU: '+NET.code+'\nGracze: '+players()+'/6\nNie wygaszaj ekranu!';}
 
 /* HOST */
 function hostRoom(){
  if(typeof Peer==='undefined'){st('Brak PeerJS (sprawdź internet)');return;}
  netStop();NET.role='host';
  NET.code=Array.from({length:4},()=>CH[Math.random()*CH.length|0]).join('');
- const p=new Peer(PID(NET.code));NET.peer=p;st('Łączenie...');
- p.on('open',()=>{st('KOD POKOJU: '+NET.code+'\nGracze: 1/6');$('#mpstart').style.display='';});
- p.on('error',e=>{if(e.type==='unavailable-id')hostRoom();else st('Błąd: '+e.type);});
+ const p=new Peer(PID(NET.code),PCFG);NET.peer=p;st('Łączenie z serwerem...');
+ p.on('open',()=>{st(roomTxt());$('#mpstart').style.display='';});
+ p.on('disconnected',()=>{try{p.reconnect();}catch(e){}});
+ p.on('error',e=>{if(e.type==='unavailable-id')hostRoom();else st('Błąd hosta: '+e.type);});
  p.on('connection',c=>{
   if(NET.conns.length>=5){c.on('open',()=>c.close());return;}
   const o={c,slot:NET.conns.length+1,bi:0,gone:false};NET.conns.push(o);
+  c.on('open',()=>{st(roomTxt());});
+  c.on('error',()=>{});
   c.on('data',d=>{
    if(!d)return;
-   if(d.t==='hello'){o.bi=BR[d.sel]?d.sel:0;st('KOD POKOJU: '+NET.code+'\nGracze: '+players()+'/6');}
+   if(d.t==='hello'){o.bi=BR[d.sel]?d.sel:0;st(roomTxt());}
    else if(d.t==='in'){const e=G&&G.ents[o.slot];if(e)e.inp=d;}
    else if(d.t==='f'){
     const e=G&&G.ents[o.slot];
     if(e&&!G.over&&G.count<=0&&!e.dead){const a=+d.a||0,r=+d.r||300;if(d.k==='atk')tryAttack(e,a,r);else trySuper(e,a,r);}
    }
   });
-  c.on('close',()=>{o.gone=true;const e=G&&G.ents[o.slot];if(e)e.remote=false;if(state==='mp')st('KOD POKOJU: '+NET.code+'\nGracze: '+players()+'/6');});
+  c.on('close',()=>{o.gone=true;const e=G&&G.ents[o.slot];if(e)e.remote=false;if(state==='mp')st(roomTxt());});
  });
 }
 function hostStart(){
@@ -100,16 +113,22 @@ function joinRoom(){
  if(typeof Peer==='undefined'){st('Brak PeerJS (sprawdź internet)');return;}
  const code=$('#mpcode').value.trim().toUpperCase();
  if(code.length!==4){st('Wpisz 4-znakowy kod');return;}
- netStop();NET.role='client';st('Łączenie...');
- const p=new Peer();NET.peer=p;
- p.on('error',e=>st('Błąd: '+e.type+' (sprawdź kod)'));
+ netStop();NET.role='client';st('Łączenie z serwerem...');
+ const p=new Peer(undefined,PCFG);NET.peer=p;
+ p.on('disconnected',()=>{try{p.reconnect();}catch(e){}});
+ p.on('error',e=>{
+  if(e.type==='peer-unavailable')st('Nie ma takiego pokoju. Sprawdź kod i czy host go założył.');
+  else st('Błąd: '+e.type);
+ });
  p.on('open',()=>{
+  st('Łączenie z hostem '+code+'...');
   const c=p.connect(PID(code),{reliable:true,serialization:'json'});NET.host=c;
   c.on('open',()=>{st('Połączono! Czekam na start hosta...');c.send({t:'hello',sel});});
+  c.on('error',e=>st('Błąd połączenia: '+(e.type||e)));
   c.on('data',d=>{if(!d)return;if(d.t==='start')clientStart(d);else if(d.t==='s')applySnap(d);});
   c.on('close',()=>{if(NET.role==='client'){netStop();G=null;state='menu';show('menu');alert('Host się rozłączył');}});
  });
- setTimeout(()=>{if(NET.role==='client'&&(!NET.host||!NET.host.open))st('Nie udało się połączyć. Sprawdź kod i Wi-Fi.');},12000);
+ setTimeout(()=>{if(NET.role==='client'&&(!NET.host||!NET.host.open))st('Nie udało się połączyć w 25 s.\nSprawdź kod, ten sam adres z ?v= i spróbuj na tym samym Wi-Fi.');},25000);
 }
 function clientStart(d){
  arenaSel=d.arena;const A=ARENAS[d.arena];
