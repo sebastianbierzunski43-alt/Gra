@@ -1,1 +1,134 @@
+(function(){
+const SPEED=.72;
+const _step=step;
+step=function(e,mx,my,dt){_step(e,mx*SPEED,my*SPEED,dt);};
+const _bot=botAI;
+const DIRS=[[1,0],[-1,0],[0,1],[0,-1]];
+const solidT=(x,y)=>x<0||y<0||x>=COLS||y>=ROWS||isSolid(G.grid[y][x]);
+function clear(e,x2,y2){
+ const d=Math.hypot(x2-e.x,y2-e.y),n=Math.ceil(d/14);
+ for(let i=1;i<=n;i++)if(hitsSolid(e.x+(x2-e.x)*i/n,e.y+(y2-e.y)*i/n,e.r-2))return false;
+ return true;
+}
+function nav(e,a,gx,gy){
+ if(Math.hypot(gx-e.x,gy-e.y)<260&&clear(e,gx,gy))return[gx,gy];
+ if(a.wp&&a.nt>0&&Math.hypot(gx-a.gx,gy-a.gy)<TS*2)return a.wp;
+ a.nt=.25;a.gx=gx;a.gy=gy;
+ const tx=clamp(gx/TS|0,0,COLS-1),ty=clamp(gy/TS|0,0,ROWS-1);
+ const D=new Int16Array(COLS*ROWS).fill(-1),q=[tx+ty*COLS];D[q[0]]=0;
+ for(let h=0;h<q.length;h++){
+  const c=q[h],cx=c%COLS,cy=c/COLS|0;
+  for(const[dx,dy]of DIRS){
+   const nx=cx+dx,ny=cy+dy;
+   if(solidT(nx,ny)||D[nx+ny*COLS]>=0)continue;
+   D[nx+ny*COLS]=D[c]+1;q.push(nx+ny*COLS);
+  }
+ }
+ let cx=clamp(e.x/TS|0,0,COLS-1),cy=clamp(e.y/TS|0,0,ROWS-1);
+ if(D[cx+cy*COLS]<0){a.wp=[gx,gy];return a.wp;}
+ const pts=[];
+ for(let i=0;i<8;i++){
+  let bx=-1,by=-1,bd=D[cx+cy*COLS];
+  for(const[dx,dy]of DIRS){
+   const nx=cx+dx,ny=cy+dy;
+   if(nx<0||ny<0||nx>=COLS||ny>=ROWS)continue;
+   const v=D[nx+ny*COLS];
+   if(v>=0&&v<bd){bd=v;bx=nx;by=ny;}
+  }
+  if(bx<0)break;
+  cx=bx;cy=by;pts.push([cx*TS+TS/2,cy*TS+TS/2]);
+ }
+ let w=pts[0]||[gx,gy];
+ for(const p of pts)if(clear(e,p[0],p[1]))w=p;
+ a.wp=w;return w;
+}
+botAI=function(e,dt){
+ if(e.remote||e.dash)return _bot(e,dt);
+ const d=e.d;
+ const a=e.ai2||(e.ai2={t:0,tgt:null,gem:null,sd:1,sdT:0,react:0,nt:0,wp:null,gx:0,gy:0,lx:e.x,ly:e.y,st:0,nudge:0,na:0});
+ a.t-=dt;a.sdT-=dt;a.react-=dt;a.nt-=dt;a.nudge-=dt;a.st+=dt;
+ if(a.sdT<=0){a.sd=Math.random()<.5?1:-1;a.sdT=rand(.8,2);}
+ e.ai.sd=a.sd;
+ const my=teamGems(e.team),en=teamGems(1-e.team);
+ const low=e.hp<e.max*.35,carry=e.gems>0;
+ if(a.t<=0){
+  a.t=rand(.12,.22);
+  let best=null,bs=1e9;
+  for(const t of G.ents){
+   if(t.team===e.team||t.dead||!vis(t,e.team))continue;
+   const x=dist(e,t);if(x>780)continue;
+   const sc=x-t.gems*70-(1-t.hp/t.max)*220;
+   if(sc<bs){bs=sc;best=t;}
+  }
+  if(best&&best!==a.tgt)a.react=rand(.2,.45);
+  a.tgt=best;
+  let g=null,gd=900;
+  for(const q of G.gems){const x=dist(e,q);if(x<gd){gd=x;g=q;}}
+  a.gem=g;
+ }
+ const t=a.tgt&&!a.tgt.dead&&vis(a.tgt,e.team)?a.tgt:null;
+ let vx=0,vy=0,face=null;
+ if(t){
+  const dd=dist(e,t),an=Math.atan2(t.y-e.y,t.x-e.x);
+  const ideal=d.rng*(d.id==='bull'?.4:.65);
+  let f=dd>ideal+40?1:dd<ideal-60?-1:0;
+  if(low||(carry&&dd<d.rng*1.1))f=-1;
+  const ok=los(e.x,e.y,t.x,t.y);
+  if(!ok&&f>0){
+   const w=nav(e,a,t.x,t.y),l=Math.hypot(w[0]-e.x,w[1]-e.y)||1;
+   vx=(w[0]-e.x)/l;vy=(w[1]-e.y)/l;
+  }else{
+   vx=Math.cos(an)*f+Math.cos(an+1.57)*a.sd*.7;
+   vy=Math.sin(an)*f+Math.sin(an+1.57)*a.sd*.7;
+  }
+  face=an;
+  if(a.react<=0&&e.atkCd<=0&&dd<d.rng*.97&&ok){
+   const lead=dd/d.bsp*.6,ang=Math.atan2(t.y+t.vy*lead-e.y,t.x+t.vx*lead-e.x)+rand(-.06,.06);
+   if(e.sup>=100&&superOk(e,dd)){trySuper(e,ang,dd);e.atkCd=.6;}
+   else if(e.ammo>=1&&tryAttack(e,ang,dd))e.atkCd=rand(.3,.8);
+  }
+ }else{
+  let gx,gy;
+  if(low){gx=e.sx;gy=e.sy;}
+  else if(a.gem&&my<NEED){gx=a.gem.x;gy=a.gem.y;}
+  else if(my>=NEED){gx=MW/2+(e.team?150:-150);gy=MH/2+(e.i-1)*100;}
+  else{gx=MW/2+(e.team?60:-60);gy=MH/2+(e.i-1)*110;}
+  const l0=Math.hypot(gx-e.x,gy-e.y);
+  if(l0>30){
+   const w=nav(e,a,gx,gy),l=Math.hypot(w[0]-e.x,w[1]-e.y)||1;
+   vx=(w[0]-e.x)/l;vy=(w[1]-e.y)/l;
+  }
+ }
+ /* unikanie pocisków */
+ if(a.react<=0||!t){
+  for(const b of G.bullets){
+   if(b.team===e.team||b.delay>0)continue;
+   const rx=e.x-b.x,ry=e.y-b.y,dd=Math.hypot(rx,ry);
+   if(dd>130||dd<1)continue;
+   const dx=Math.cos(b.a),dy=Math.sin(b.a);
+   if(rx*dx+ry*dy<=0)continue;
+   const cr=rx*dy-ry*dx,s=cr>0?-1:1;
+   vx+=-dy*s*.9;vy+=dx*s*.9;
+  }
+ }
+ /* odklejanie się, gdy bot utknie */
+ if(a.st>=.6){
+  const moved=Math.hypot(e.x-a.lx,e.y-a.ly);
+  if(moved<14&&(Math.abs(vx)+Math.abs(vy))>.2){a.nudge=.5;a.na=Math.random()*6.28;a.sd=-a.sd;a.wp=null;}
+  a.lx=e.x;a.ly=e.y;a.st=0;
+ }
+ if(a.nudge>0){vx=Math.cos(a.na);vy=Math.sin(a.na);}
+ /* super Poco (leczenie) */
+ if(d.id==='poco'&&e.sup>=100&&e.atkCd<=0){
+  let n=0;
+  for(const o of G.ents)if(o.team===e.team&&!o.dead&&dist(o,e)<240&&o.hp<o.max*.55)n++;
+  if(n)trySuper(e,e.ang,0);
+ }
+ const l=Math.hypot(vx,vy);if(l>1){vx/=l;vy/=l;}
+ const s=steer(e,vx,vy);
+ step(e,s[0],s[1],dt);
+ if(face!==null&&!e.dash)e.ang=face;
+ else if(s[0]||s[1])e.ang=Math.atan2(s[1],s[0]);
+};
+})();
 
