@@ -1,6 +1,7 @@
 (function(){
 if(window.__p7)return;window.__p7=1;
 const FLAG='brawlCheatOn',BK1='brawlCheatBak1',BK2='brawlCheatBak2',BK3='brawlCheatBak3',K1='brawlArenaSave1',K2='brawlArenaSave2',K3='brawlArenaSave3';
+const ALLPINS=['🔥','💀','🤡','🥳','😱','🤬','🥺','💪','🏆','👏','🤝','💎','⭐','❤️','🙏','🤔','😴','🤩','👋','🎉','🧠','👀','💥','🍀'];
 const t=document.querySelector('#menu .title');
 if(!t)return;
 t.style.cursor='pointer';
@@ -29,7 +30,7 @@ t.addEventListener('click',()=>{
   const lv={},g={},s={},own={};
   BR.forEach(b=>{lv[b.id]=7;g[b.id]=1;s[b.id]=1;own[b.id]=[1,2,3,4,5];});
   s2.lv=lv;s2.g=g;s2.s=s;if(typeof s2.coins!=='number')s2.coins=100;
-  s3.own=own;
+  s3.own=own;s3.pins=ALLPINS.slice();
   localStorage.setItem(K1,JSON.stringify(s1));
   localStorage.setItem(K2,JSON.stringify(s2));
   localStorage.setItem(K3,JSON.stringify(s3));
