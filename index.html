@@ -1,10 +1,6 @@
 <!DOCTYPE html>
 <html lang="pl">
 <head>
-  <link rel="manifest" href="./manifest.json">
-<meta name="theme-color" content="#24164A">
-<meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-title" content="BrawlArena">
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -571,19 +567,6 @@ resize();buildSelect();requestAnimationFrame(loop);
 <script src="extras.js?v=1"></script>
 <script src="bots.js?v=1"></script>
 <script src="pack1.js?v=1"></script>
-  <script>
-if ("serviceWorker" in navigator) {
-  window.addEventListener("load", () => {
-    navigator.serviceWorker.register("./sw.js")
-      .catch(error => console.error("PWA error:", error));
-  });
-}
-</script>
-  <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script><script src="multi.js?v=2"></script>
-<script src="extras.js?v=1"></script>
-<script src="bots.js?v=1"></script>
-<script src="pack1.js?v=1"></script>
 <script src="pack2.js?v=1"></script>
-
 </body>
 </html>
