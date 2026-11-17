@@ -193,6 +193,7 @@ function award(){
 }
 const _sr=showResult;
 showResult=function(){cel.innerHTML='';_sr.apply(this,arguments);try{award();}catch(e){}};
- window.__COIN={get:()=>SV.coins,add:n=>{SV.coins+=n;save();refresh();}};
+window.__COIN={get:()=>SV.coins,add:n=>{SV.coins+=n;save();refresh();}};
+
 
 })();
