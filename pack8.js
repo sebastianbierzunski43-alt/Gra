@@ -57,7 +57,7 @@ drawBrawler=function(c,x,y,d,ang,o){
  drawSk(c,x,y,d,ang,o,si);
 };
 
-/* ---------- BŁYSKOTKI: podmiana emotek ---------- */
+/* ---------- EMOTKI: podmiana ---------- */
 const MAP=Object.create(null);
 function remap(){DEF.forEach((d,i)=>{MAP[d]=SV.slots[i]||d;});}
 remap();
@@ -69,7 +69,7 @@ CanvasRenderingContext2D.prototype.fillText=function(t,x,y,w){
 
 /* ---------- SKLEP ---------- */
 const sh=document.createElement('div');sh.id='sh';sh.className='screen glow';
-sh.innerHTML='<div class="bar"><button class="btn red small" id="shback">◀</button><button class="btn blue small" id="shsk">SKINY</button><button class="btn blue small" id="shpn">BŁYSKOTKI</button><div class="h2 ol" id="shc" style="margin-left:auto"></div></div><div id="shbody" style="width:100%;max-width:920px;overflow:auto;max-height:76vh"></div>';
+sh.innerHTML='<div class="bar"><button class="btn red small" id="shback">◀</button><button class="btn blue small" id="shsk">SKINY</button><button class="btn blue small" id="shpn">EMOTKI</button><div class="h2 ol" id="shc" style="margin-left:auto"></div></div><div id="shbody" style="width:100%;max-width:920px;overflow:auto;max-height:76vh"></div>';
 document.body.appendChild(sh);
 let bi=0,tab=0,slotSel=0;
 
@@ -116,7 +116,7 @@ function renderPn(b){
  b.appendChild(sl);
  const info=document.createElement('div');
  info.className='sub ol';info.style.cssText='text-align:center;margin-bottom:1vh;font-size:min(3.2vh,13px)';
- info.textContent='Wybierz slot, potem kliknij błyskotkę, którą chcesz w nim mieć.';
+ info.textContent='Wybierz slot, potem kliknij emotkę, którą chcesz w nim mieć.';
  b.appendChild(info);
  const g=document.createElement('div');
  g.style.cssText='display:grid;grid-template-columns:repeat(auto-fill,minmax(min(11vh,64px),1fr));gap:1vh';
@@ -139,7 +139,7 @@ $('#shback').onclick=()=>{state='menu';show('menu');};
 
 /* ---------- PRZYCISK W MENU ---------- */
 const mb=document.createElement('button');
-mb.className='btn blue small tl';mb.textContent='🛍️ SKINY I BŁYSKOTKI';
+mb.className='btn blue small tl';mb.textContent='🛍️ SKINY I EMOTKI';
 const ref=[...document.querySelectorAll('#menu .btn')].find(x=>/ULEPSZENIA/.test(x.textContent));
 (ref?ref.parentElement:$('#menu')).appendChild(mb);
 mb.onclick=()=>{tab=0;render();state='select';show('sh');};
