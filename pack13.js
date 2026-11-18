@@ -11,58 +11,114 @@
 
   function startQuorekID() {
     const db = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-    const play = document.getElementById("play");
     const menu = document.getElementById("menu");
 
-    if (!play || !menu) return;
-
-    const row = document.createElement("div");
-    row.style.cssText = "display:flex;align-items:center;justify-content:center;gap:12px;";
-
-    menu.insertBefore(row, play);
-    row.appendChild(play);
-
-    const button = document.createElement("button");
-    button.id = "qid-button";
-    button.className = "btn blue";
-    button.textContent = "♛ Q ID";
-    button.style.cssText = "font-size:min(5vh,22px);padding:.35em .8em;";
-    row.appendChild(button);
+    if (!menu) return;
 
     const style = document.createElement("style");
     style.textContent = `
+      #qid-button {
+        position: fixed;
+        top: 30px;
+        right: 15px;
+        z-index: 999999;
+        background: #17172b;
+        color: white;
+        border: 1px solid #7772ff;
+        border-radius: 12px;
+        padding: 11px 18px;
+        font-weight: bold;
+        cursor: pointer;
+        font-size: 15px;
+      }
+
       #qid-overlay {
-        display:none; position:fixed; inset:0; z-index:1000000;
-        background:#000a; align-items:center; justify-content:center;
-        font-family:Arial,sans-serif;
+        display: none;
+        position: fixed;
+        inset: 0;
+        z-index: 1000000;
+        background: #000a;
+        align-items: center;
+        justify-content: center;
+        font-family: Arial, sans-serif;
       }
+
       #qid-box {
-        box-sizing:border-box; width:min(360px,92vw);
-        background:#191927; color:white; padding:25px;
-        border:2px solid #7772ff; border-radius:18px;
-        position:relative; font-family:Arial,sans-serif;
+        box-sizing: border-box;
+        width: min(360px, 92vw);
+        background: #191927;
+        color: white;
+        padding: 25px;
+        border: 2px solid #7772ff;
+        border-radius: 18px;
+        position: relative;
       }
+
       #qid-box input {
-        box-sizing:border-box; width:100%; padding:12px;
-        margin:7px 0; border:1px solid #44445c;
-        border-radius:9px; background:#29293b; color:white;
+        box-sizing: border-box;
+        width: 100%;
+        padding: 12px;
+        margin: 7px 0;
+        border: 1px solid #44445c;
+        border-radius: 9px;
+        background: #29293b;
+        color: white;
       }
-      #qid-box button, #qid-box a {
-        display:block; box-sizing:border-box; width:100%;
-        padding:12px; margin-top:10px; border:0;
-        border-radius:9px; text-align:center; cursor:pointer;
-        font-weight:bold; text-decoration:none;
+
+      #qid-box button,
+      #qid-box a {
+        display: block;
+        box-sizing: border-box;
+        width: 100%;
+        padding: 12px;
+        margin-top: 10px;
+        border: 0;
+        border-radius: 9px;
+        text-align: center;
+        cursor: pointer;
+        font-weight: bold;
+        text-decoration: none;
       }
-      #qid-login {background:#7772ff;color:white;}
-      #qid-register {background:#303047;color:white;}
+
+      #qid-login { background: #7772ff; color: white; }
+      #qid-register { background: #303047; color: white; }
+
       #qid-close {
-        position:absolute;top:8px;right:10px;
-        width:auto!important;background:transparent;
-        color:white;font-size:22px;padding:5px!important;
+        position: absolute;
+        top: 8px;
+        right: 10px;
+        width: auto !important;
+        background: transparent;
+        color: white;
+        font-size: 22px;
+        padding: 5px !important;
       }
-      #qid-message {color:#ccc;font-size:13px;}
+
+      #qid-message {
+        color: #ccc;
+        font-size: 13px;
+      }
     `;
     document.head.appendChild(style);
+
+    const button = document.createElement("button");
+    button.id = "qid-button";
+    button.textContent = "♛ Q ID";
+    document.body.appendChild(button);
+
+    function updateVisibility() {
+      button.style.display = menu.classList.contains("on")
+        ? "block"
+        : "none";
+    }
+
+    const observer = new MutationObserver(updateVisibility);
+    observer.observe(menu, {
+      attributes: true,
+      attributeFilter: ["class"]
+    });
+
+    updateVisibility();
 
     const overlay = document.createElement("div");
     overlay.id = "qid-overlay";
@@ -81,14 +137,18 @@
     `;
     document.body.appendChild(overlay);
 
-    button.onclick = () => overlay.style.display = "flex";
+    button.onclick = () => {
+      overlay.style.display = "flex";
+    };
 
     document.getElementById("qid-close").onclick = () => {
       overlay.style.display = "none";
     };
 
     overlay.onclick = event => {
-      if (event.target === overlay) overlay.style.display = "none";
+      if (event.target === overlay) {
+        overlay.style.display = "none";
+      }
     };
 
     document.getElementById("qid-login").onclick = async () => {
@@ -99,7 +159,8 @@
       message.textContent = "Logowanie...";
 
       const { data, error } = await db.auth.signInWithPassword({
-        email, password
+        email,
+        password
       });
 
       if (error) {
@@ -139,8 +200,11 @@
 
     function escapeHTML(value) {
       return String(value).replace(/[&<>"']/g, char => ({
-        "&": "&amp;", "<": "&lt;", ">": "&gt;",
-        '"': "&quot;", "'": "&#39;"
+        "&": "&amp;",
+        "<": "&lt;",
+        ">": "&gt;",
+        '"': "&quot;",
+        "'": "&#39;"
       })[char]);
     }
   }
