@@ -10,9 +10,20 @@
   document.head.appendChild(script);
 
   function startQuorekID() {
-    const db = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-    const menu = document.getElementById("menu");
+    const db = window.supabase.createClient(
+      SUPABASE_URL,
+      SUPABASE_KEY,
+      {
+        auth: {
+          persistSession: true,
+          autoRefreshToken: true,
+          detectSessionInUrl: true,
+          storage: window.localStorage
+        }
+      }
+    );
 
+    const menu = document.getElementById("menu");
     if (!menu) return;
 
     const style = document.createElement("style");
@@ -82,6 +93,7 @@
 
       #qid-login { background: #7772ff; color: white; }
       #qid-register { background: #303047; color: white; }
+      #qid-logout { background: #b83248; color: white; }
 
       #qid-close {
         position: absolute;
@@ -137,66 +149,14 @@
     `;
     document.body.appendChild(overlay);
 
-    button.onclick = () => {
-      overlay.style.display = "flex";
-    };
-
-    document.getElementById("qid-close").onclick = () => {
+    function closeOverlay() {
       overlay.style.display = "none";
-    };
+    }
 
-    overlay.onclick = event => {
-      if (event.target === overlay) {
-        overlay.style.display = "none";
-      }
-    };
-
-    document.getElementById("qid-login").onclick = async () => {
-      const email = document.getElementById("qid-email").value.trim();
-      const password = document.getElementById("qid-password").value;
-      const message = document.getElementById("qid-message");
-
-      message.textContent = "Logowanie...";
-
-      const { data, error } = await db.auth.signInWithPassword({
-        email,
-        password
-      });
-
-      if (error) {
-        message.textContent = error.message;
-        return;
-      }
-
-      const { data: profile, error: profileError } = await db
-        .from("profiles")
-        .select("username, avatar")
-        .eq("id", data.user.id)
-        .single();
-
-      if (profileError) {
-        message.textContent = profileError.message;
-        return;
-      }
-
-      const box = document.getElementById("qid-box");
-      box.innerHTML = `
-        <button id="qid-close" aria-label="Zamknij">×</button>
-        <h2>♛ QUOREK ID</h2>
-        <h3>Witaj, ${escapeHTML(profile.username)}!</h3>
-        <p>Połączono z QUOREK ID.</p>
-        <button id="qid-logout">WYLOGUJ</button>
-      `;
-
-      document.getElementById("qid-close").onclick = () => {
-        overlay.style.display = "none";
-      };
-
-      document.getElementById("qid-logout").onclick = async () => {
-        await db.auth.signOut();
-        location.reload();
-      };
-    };
+    function bindClose() {
+      const close = document.getElementById("qid-close");
+      if (close) close.onclick = closeOverlay;
+    }
 
     function escapeHTML(value) {
       return String(value).replace(/[&<>"']/g, char => ({
@@ -207,5 +167,144 @@
         "'": "&#39;"
       })[char]);
     }
+
+    async function showProfile(user) {
+      const { data: profile, error } = await db
+        .from("profiles")
+        .select("username, avatar")
+        .eq("id", user.id)
+        .single();
+
+      if (error) throw error;
+
+      const box = document.getElementById("qid-box");
+
+      box.innerHTML = `
+        <button id="qid-close" aria-label="Zamknij">×</button>
+        <h2>♛ QUOREK ID</h2>
+        <div style="font-size:42px;text-align:center">
+          ${escapeHTML(profile.avatar || "👑")}
+        </div>
+        <h3 style="text-align:center">
+          Witaj, ${escapeHTML(profile.username)}!
+        </h3>
+        <p style="text-align:center">Połączono z QUOREK ID.</p>
+        <p id="qid-message"></p>
+        <button id="qid-logout">WYLOGUJ</button>
+      `;
+
+      bindClose();
+
+      document.getElementById("qid-logout").onclick = async () => {
+        const logout = document.getElementById("qid-logout");
+        const message = document.getElementById("qid-message");
+
+        logout.disabled = true;
+        message.textContent = "Wylogowywanie...";
+
+        const { error } = await db.auth.signOut();
+
+        if (error) {
+          message.textContent = error.message;
+          logout.disabled = false;
+          return;
+        }
+
+        closeOverlay();
+        showLogin();
+      };
+    }
+
+    function showLogin() {
+      const box = document.getElementById("qid-box");
+
+      box.innerHTML = `
+        <button id="qid-close" aria-label="Zamknij">×</button>
+        <h2>♛ QUOREK ID</h2>
+        <p>Jedno konto. Wszystkie gry.</p>
+        <input id="qid-email" type="email" placeholder="Adres e-mail">
+        <input id="qid-password" type="password" placeholder="Hasło">
+        <button id="qid-login">ZALOGUJ SIĘ</button>
+        <p id="qid-message"></p>
+        <p>Nie masz jeszcze konta?</p>
+        <a id="qid-register" href="${REGISTER_URL}" target="_blank" rel="noopener">UTWÓRZ KONTO</a>
+      `;
+
+      bindClose();
+
+      document.getElementById("qid-login").onclick = async () => {
+        const email = document.getElementById("qid-email").value.trim();
+        const password = document.getElementById("qid-password").value;
+        const message = document.getElementById("qid-message");
+        const login = document.getElementById("qid-login");
+
+        if (!email || !password) {
+          message.textContent = "Wpisz e-mail i hasło.";
+          return;
+        }
+
+        login.disabled = true;
+        message.textContent = "Logowanie...";
+
+        const { data, error } = await db.auth.signInWithPassword({
+          email,
+          password
+        });
+
+        if (error) {
+          message.textContent = error.message;
+          login.disabled = false;
+          return;
+        }
+
+        try {
+          await showProfile(data.user);
+        } catch (e) {
+          message.textContent = e.message;
+          login.disabled = false;
+        }
+      };
+    }
+
+    button.onclick = async () => {
+      overlay.style.display = "flex";
+
+      const box = document.getElementById("qid-box");
+      box.innerHTML = `
+        <button id="qid-close" aria-label="Zamknij">×</button>
+        <h2>♛ QUOREK ID</h2>
+        <p id="qid-message">Sprawdzanie konta...</p>
+      `;
+      bindClose();
+
+      const { data, error } = await db.auth.getSession();
+
+      if (error) {
+        showLogin();
+        document.getElementById("qid-message").textContent = error.message;
+        return;
+      }
+
+      if (data.session) {
+        try {
+          await showProfile(data.session.user);
+        } catch (e) {
+          showLogin();
+          document.getElementById("qid-message").textContent = e.message;
+        }
+      } else {
+        showLogin();
+      }
+    };
+
+    overlay.onclick = event => {
+      if (event.target === overlay) closeOverlay();
+    };
+
+    db.auth.onAuthStateChange((event, session) => {
+      if (event === "SIGNED_OUT") {
+        showLogin();
+      }
+    });
   }
 })();
