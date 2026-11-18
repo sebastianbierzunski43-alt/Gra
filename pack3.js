@@ -18,6 +18,7 @@ const isOpen=i=>!!BR[i]&&SV.tr>=need(BR[i]);
 /* ---------- STYLE I TOAST ---------- */
 const stl=document.createElement('style');
 stl.textContent=
+ '#tr{height:100vh;max-height:100dvh;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;box-sizing:border-box;padding-bottom:20px}'+
 '.card{position:relative}.lkov{position:absolute;inset:0;background:rgba(10,5,30,.72);border-radius:8px;display:flex;align-items:center;justify-content:center;text-align:center;font-size:min(4vh,16px);pointer-events:none}'+
 '#trgrid{display:grid;gap:.8vh;width:100%;max-width:920px}.tn{border:4px solid #14102b;border-radius:12px;background:linear-gradient(#4d7bff,#25409e);text-align:center;padding:2px;font-size:min(2.8vh,10px);text-shadow:1px 1px 0 #14102b}.tn.lk{filter:grayscale(.9) brightness(.6)}.tn.nx{outline:4px solid #ffd93b}.tn canvas{width:100%;aspect-ratio:1;display:block}'+
 '#trbar{width:100%;max-width:920px;height:3.4vh;min-height:14px;background:#14102b;border-radius:10px;border:3px solid #14102b;overflow:hidden}#trfill{height:100%;width:0;background:linear-gradient(#ffd93b,#ff9a1f)}#trst{font:700 min(3vh,12px) Arial,sans-serif;opacity:.85;text-align:center}'+
