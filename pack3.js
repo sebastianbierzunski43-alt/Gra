@@ -24,7 +24,7 @@ stl.textContent=
 '#trbar{width:100%;max-width:920px;height:3.4vh;min-height:14px;background:#14102b;border-radius:10px;border:3px solid #14102b;overflow:hidden}#trfill{height:100%;width:0;background:linear-gradient(#ffd93b,#ff9a1f)}#trst{font:700 min(3vh,12px) Arial,sans-serif;opacity:.85;text-align:center}'+
 '#qid-link{width:96%;max-width:360px;text-align:center;background:#191927;border:1px solid #7772ff;border-radius:9px;padding:5px;box-sizing:border-box;margin:6px auto;color:white;font:12px Arial,sans-serif}'+
 '#qid-link h3{font-size:13px;margin:3px 0 6px}'+
-'#qid-game-code{width:85%;padding:6px;text-align:center;font-weight:bold;font-size:15px;background:#29293b;color:white;border:1px solid #7772ff;border-radius:6px;box-sizing:border-box}'+
+'#qid-game-code{width:70%;padding:4px;text-align:center;font-weight:bold;font-size:11px;background:#29293b;color:white;border:1px solid #7772ff;border-radius:6px;box-sizing:border-box}'+
 '#qid-link button{margin:5px;padding:6px 12px;font-size:11px}';
 document.head.appendChild(stl);
 
@@ -104,8 +104,7 @@ trs.innerHTML=
 '<h3>POŁĄCZ Z QUOREK ID</h3>'+
 '<input id="qid-game-code" readonly value="">'+
 '<br><button class="btn blue small" id="qid-copy">KOPIUJ KOD</button>'+
-'</div>'+
-'<button class="btn red small" id="trreset">RESET POSTĘPU</button>';
+'</div>';
 
 document.body.appendChild(trs);
 
@@ -322,18 +321,6 @@ $('#trback').onclick=()=>{
  state='menu';
  refresh();
  show('menu');
-};
-
-$('#trreset').onclick=()=>{
- if(confirm('Zresetować cały postęp i puchary?')){
-  SV={tr:0,sel:0,arena:0,m:0,w:0};
-  save();
-  sel=0;
-  arenaSel=0;
-  buildSelect();
-  renderTR();
-  refresh();
- }
 };
 
 /* ---------- PUCHARY PO MECZU ---------- */
