@@ -21,9 +21,10 @@ stl.textContent=
 '.card{position:relative}.lkov{position:absolute;inset:0;background:rgba(10,5,30,.72);border-radius:8px;display:flex;align-items:center;justify-content:center;text-align:center;font-size:min(4vh,16px);pointer-events:none}'+
 '#trgrid{display:grid;gap:.8vh;width:100%;max-width:920px}.tn{border:4px solid #14102b;border-radius:12px;background:linear-gradient(#4d7bff,#25409e);text-align:center;padding:2px;font-size:min(2.8vh,10px);text-shadow:1px 1px 0 #14102b}.tn.lk{filter:grayscale(.9) brightness(.6)}.tn.nx{outline:4px solid #ffd93b}.tn canvas{width:100%;aspect-ratio:1;display:block}'+
 '#trbar{width:100%;max-width:920px;height:3.4vh;min-height:14px;background:#14102b;border-radius:10px;border:3px solid #14102b;overflow:hidden}#trfill{height:100%;width:0;background:linear-gradient(#ffd93b,#ff9a1f)}#trst{font:700 min(3vh,12px) Arial,sans-serif;opacity:.85;text-align:center}'+
-'#qid-link{width:100%;max-width:500px;text-align:center;background:#191927;border:2px solid #7772ff;border-radius:14px;padding:12px;box-sizing:border-box;margin:12px auto;color:white;font-family:Arial,sans-serif}'+
-'#qid-game-code{width:90%;padding:10px;text-align:center;font-weight:bold;font-size:18px;background:#29293b;color:white;border:1px solid #7772ff;border-radius:8px;box-sizing:border-box}'+
-'#qid-link button{margin:6px}';
+'#qid-link{width:96%;max-width:360px;text-align:center;background:#191927;border:1px solid #7772ff;border-radius:9px;padding:5px;box-sizing:border-box;margin:6px auto;color:white;font:12px Arial,sans-serif}'+
+'#qid-link h3{font-size:13px;margin:3px 0 6px}'+
+'#qid-game-code{width:85%;padding:6px;text-align:center;font-weight:bold;font-size:15px;background:#29293b;color:white;border:1px solid #7772ff;border-radius:6px;box-sizing:border-box}'+
+'#qid-link button{margin:5px;padding:6px 12px;font-size:11px}';
 document.head.appendChild(stl);
 
 const tsEl=document.createElement('div');
@@ -98,16 +99,10 @@ trs.innerHTML=
 '<div id="trbar"><div id="trfill"></div></div>'+
 '<div id="trgrid"></div>'+
 '<div id="trst"></div>'+
-'<div id="qid-link">'+
-'<h3>♛ POŁĄCZ Z QUOREK ID</h3>'+
-'<div id="qid-link-status">Ładowanie...</div>'+
-'<div id="qid-code-area" style="display:none">'+
-'<p>Twój jednorazowy kod:</p>'+
+'<div id="qid-link" style="display:none">'+
+'<h3>POŁĄCZ Z QUOREK ID</h3>'+
 '<input id="qid-game-code" readonly value="">'+
 '<br><button class="btn blue small" id="qid-copy">KOPIUJ KOD</button>'+
-'<p>Wpisz kod na stronie QUOREK ID.</p>'+
-'</div>'+
-'<button class="btn blue small" id="qid-check">SPRAWDŹ POŁĄCZENIE</button>'+
 '</div>'+
 '<button class="btn red small" id="trreset">RESET POSTĘPU</button>';
 
@@ -121,6 +116,8 @@ let qdb=null;
 let qCode=null;
 let qLoading=false;
 let qDbPromise=null;
+let qPanelActive=false;
+let qTimer=null;
 
 function getGameId(){
  let id=localStorage.getItem('quorekGameId');
@@ -168,21 +165,11 @@ function loadQDb(){
  return qDbPromise;
 }
 
-function safeText(value){
- return String(value??'').replace(/[&<>"']/g,'');
-}
-
 async function createQCode(){
- const status=document.getElementById('qid-link-status');
- const area=document.getElementById('qid-code-area');
-
  if(qCode){
   document.getElementById('qid-game-code').value=qCode;
-  area.style.display='block';
   return;
  }
-
- status.textContent='Generowanie kodu...';
 
  const {data,error}=await qdb.rpc('create_game_link_code',{
   p_game_id:getGameId()
@@ -192,18 +179,14 @@ async function createQCode(){
 
  qCode=data;
  document.getElementById('qid-game-code').value=qCode;
- area.style.display='block';
- status.textContent='Kod gotowy! Jest ważny przez 10 minut.';
 }
 
 async function checkQLink(){
- const status=document.getElementById('qid-link-status');
- const area=document.getElementById('qid-code-area');
+ const panel=document.getElementById('qid-link');
 
- if(!status||qLoading)return;
+ if(!panel||!qPanelActive||qLoading)return;
 
  qLoading=true;
- status.textContent='Sprawdzanie połączenia...';
 
  try{
   await loadQDb();
@@ -215,24 +198,33 @@ async function checkQLink(){
   if(error)throw error;
 
   if(data&&data.length){
-   area.style.display='none';
    qCode=null;
-
-   const profile=data[0];
-   status.innerHTML=
-    '♛ POŁĄCZONO Z QUOREK ID<br><b>'+
-    safeText(profile.username)+
-    '</b><br>Avatar: '+safeText(profile.avatar);
-  }else{
-   status.textContent='Konto nie jest jeszcze połączone.';
-   await createQCode();
+   panel.style.display='none';
+   qPanelActive=false;
+   if(qTimer)clearTimeout(qTimer);
+   toast('Połączono z QUOREK ID!');
+   return;
   }
 
+  panel.style.display='block';
+  await createQCode();
+
  }catch(e){
-  status.textContent='Błąd: '+e.message;
+  panel.style.display='block';
+  console.error('QUOREK ID:',e);
  }finally{
   qLoading=false;
  }
+}
+
+function scheduleQCheck(){
+ if(qTimer)clearTimeout(qTimer);
+ if(!qPanelActive)return;
+
+ qTimer=setTimeout(async()=>{
+  await checkQLink();
+  scheduleQCheck();
+ },5000);
 }
 
 document.getElementById('qid-copy').onclick=async()=>{
@@ -247,18 +239,13 @@ document.getElementById('qid-copy').onclick=async()=>{
   }else{
    input.focus();
    input.select();
-   toast('Zaznaczono kod. Skopiuj go.');
+   toast('Zaznacz kod i skopiuj.');
   }
  }catch(e){
   input.focus();
   input.select();
-  toast('Zaznaczono kod. Skopiuj go.');
+  toast('Zaznacz kod i skopiuj.');
  }
-};
-
-document.getElementById('qid-check').onclick=()=>{
- qCode=null;
- checkQLink();
 };
 
 /* ---------- RENDER ALEI ---------- */
@@ -323,10 +310,14 @@ mbtn.onclick=()=>{
  renderTR();
  state='select';
  show('tr');
+ qPanelActive=true;
  checkQLink();
+ scheduleQCheck();
 };
 
 $('#trback').onclick=()=>{
+ qPanelActive=false;
+ if(qTimer)clearTimeout(qTimer);
  state='menu';
  refresh();
  show('menu');
