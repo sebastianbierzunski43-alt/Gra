@@ -13,32 +13,8 @@ const need=b=>REQ[b.id]||0;
 let SV={tr:0,sel:0,arena:0,m:0,w:0};
 try{Object.assign(SV,JSON.parse(localStorage.getItem(KEY)||'{}'));}catch(e){}
 
-let cloudReady=false;
-let cloudSyncing=false;
-let cloudTimer=null;
-let cloudQueue=Promise.resolve();
-
-function scheduleCloudSave(){
- if(!cloudReady||cloudSyncing)return;
- clearTimeout(cloudTimer);
- cloudTimer=setTimeout(()=>{
-  cloudQueue=cloudQueue.then(async()=>{
-   if(!cloudReady||cloudSyncing)return;
-   try{
-    const {error}=await qdb.rpc('save_my_game_save',{
-     p_save_data:SV
-    });
-    if(error)throw error;
-   }catch(e){
-    console.error('QUOREK ID — zapis:',e);
-   }
-  });
- },1000);
-}
-
 const save=()=>{
  try{localStorage.setItem(KEY,JSON.stringify(SV));}catch(e){}
- scheduleCloudSave();
 };
 
 const isOpen=i=>!!BR[i]&&SV.tr>=need(BR[i]);
@@ -49,11 +25,7 @@ stl.textContent=
  '#tr{height:100vh;max-height:100dvh;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;box-sizing:border-box;padding-bottom:20px}'+
 '.card{position:relative}.lkov{position:absolute;inset:0;background:rgba(10,5,30,.72);border-radius:8px;display:flex;align-items:center;justify-content:center;text-align:center;font-size:min(4vh,16px);pointer-events:none}'+
 '#trgrid{display:grid;gap:.8vh;width:100%;max-width:920px}.tn{border:4px solid #14102b;border-radius:12px;background:linear-gradient(#4d7bff,#25409e);text-align:center;padding:2px;font-size:min(2.8vh,10px);text-shadow:1px 1px 0 #14102b}.tn.lk{filter:grayscale(.9) brightness(.6)}.tn.nx{outline:4px solid #ffd93b}.tn canvas{width:100%;aspect-ratio:1;display:block}'+
-'#trbar{width:100%;max-width:920px;height:3.4vh;min-height:14px;background:#14102b;border-radius:10px;border:3px solid #14102b;overflow:hidden}#trfill{height:100%;width:0;background:linear-gradient(#ffd93b,#ff9a1f)}#trst{font:700 min(3vh,12px) Arial,sans-serif;opacity:.85;text-align:center}'+
-'#qid-link{width:96%;max-width:360px;text-align:center;background:#191927;border:1px solid #7772ff;border-radius:9px;padding:5px;box-sizing:border-box;margin:6px auto;color:white;font:12px Arial,sans-serif}'+
-'#qid-link h3{font-size:13px;margin:3px 0 6px}'+
-'#qid-game-code{width:70%;padding:4px;text-align:center;font-weight:bold;font-size:11px;background:#29293b;color:white;border:1px solid #7772ff;border-radius:6px;box-sizing:border-box}'+
-'#qid-link button{margin:5px;padding:6px 12px;font-size:11px}';
+'#trbar{width:100%;max-width:920px;height:3.4vh;min-height:14px;background:#14102b;border-radius:10px;border:3px solid #14102b;overflow:hidden}#trfill{height:100%;width:0;background:linear-gradient(#ffd93b,#ff9a1f)}#trst{font:700 min(3vh,12px) Arial,sans-serif;opacity:.85;text-align:center}';
 document.head.appendChild(stl);
 
 const tsEl=document.createElement('div');
@@ -127,240 +99,9 @@ trs.innerHTML=
 '<div class="sub ol" id="trtxt"></div>'+
 '<div id="trbar"><div id="trfill"></div></div>'+
 '<div id="trgrid"></div>'+
-'<div id="trst"></div>'+
-'<div id="qid-link" style="display:none">'+
-'<h3>POŁĄCZ Z QUOREK ID</h3>'+
-'<input id="qid-game-code" readonly value="">'+
-'<br><button class="btn blue small" id="qid-copy">KOPIUJ KOD</button>'+
-'</div>';
+'<div id="trst"></div>';
 
 document.body.appendChild(trs);
-
-/* ---------- QUOREK ID ---------- */
-const Q_URL='https://jmzziupnoxmvahtkmchz.supabase.co';
-const Q_KEY='sb_publishable_BZwA65yDsvBHD5FB_yzy1Q_x2AxfZtD';
-
-let qdb=null;
-let qCode=null;
-let qLoading=false;
-let qDbPromise=null;
-let qPanelActive=false;
-let qTimer=null;
-
-function getGameId(){
- let id=localStorage.getItem('quorekGameId');
-
- if(!id){
-  if(crypto.randomUUID){
-   id=crypto.randomUUID();
-  }else{
-   id='xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g,c=>{
-    const r=Math.random()*16|0;
-    return (c==='x'?r:(r&3|8)).toString(16);
-   });
-  }
-  localStorage.setItem('quorekGameId',id);
- }
- return id;
-}
-
-function loadQDb(){
- if(qdb)return Promise.resolve(qdb);
- if(qDbPromise)return qDbPromise;
-
- qDbPromise=new Promise((resolve,reject)=>{
-  function create(){
-   try{
-    qdb=window.supabase.createClient(Q_URL,Q_KEY,{
-     auth:{
-      persistSession:true,
-      autoRefreshToken:true,
-      detectSessionInUrl:true,
-      storage:window.localStorage
-     }
-    });
-    resolve(qdb);
-   }catch(e){
-    reject(e);
-   }
-  }
-
-  if(window.supabase){
-   create();
-   return;
-  }
-
-  const s=document.createElement('script');
-  s.src='https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2';
-  s.onload=create;
-  s.onerror=()=>reject(new Error('Nie udało się załadować Supabase.'));
-  document.head.appendChild(s);
- });
-
- return qDbPromise;
-}
-
-/* ---------- WCZYTYWANIE I ZAPIS CHMUROWY ---------- */
-async function syncCloudSave(){
- if(cloudSyncing)return;
- cloudSyncing=true;
- cloudReady=false;
-
- try{
-  await loadQDb();
-
-  const {data:sessionData,error:sessionError}=await qdb.auth.getSession();
-  if(sessionError)throw sessionError;
-
-  if(!sessionData.session)return;
-
-  const {data,error}=await qdb.rpc('get_my_game_save');
-  if(error)throw error;
-
-  if(data&&typeof data==='object'&&!Array.isArray(data)){
-   Object.assign(SV,data);
-
-   try{
-    localStorage.setItem(KEY,JSON.stringify(SV));
-   }catch(e){}
-
-   if(SV.sel>=0&&SV.sel<BR.length&&isOpen(SV.sel))sel=SV.sel;
-   else sel=0;
-
-   if(SV.arena>=0&&SV.arena<ARENAS.length)arenaSel=SV.arena;
-
-   refresh();
-   buildSelect();
-   renderTR();
-
-   toast('Wczytano postęp z chmury!');
-  }else{
-   const {error:saveError}=await qdb.rpc('save_my_game_save',{
-    p_save_data:SV
-   });
-   if(saveError)throw saveError;
-
-   toast('Zapis gry przeniesiony do chmury!');
-  }
-
-  cloudReady=true;
-
- }catch(e){
-  console.error('QUOREK ID — synchronizacja:',e);
-  const msg=String(e.message||e);
-
-  if(msg.includes('nie jest połączone')){
-   toast('Połącz najpierw grę z QUOREK ID.');
-  }else{
-   toast('Nie udało się zsynchronizować zapisu.');
-  }
- }finally{
-  cloudSyncing=false;
- }
-}
-
-async function checkCloudSession(){
- try{
-  await loadQDb();
-
-  qdb.auth.onAuthStateChange((event,session)=>{
-   if(event==='SIGNED_IN'&&session){
-    syncCloudSave();
-   }
-   if(event==='SIGNED_OUT'){
-    cloudReady=false;
-   }
-  });
-
-  await syncCloudSave();
- }catch(e){
-  console.error('QUOREK ID — sesja:',e);
- }
-}
-
-/* ---------- KOD ŁĄCZENIA GRY ---------- */
-async function createQCode(){
- if(qCode){
-  document.getElementById('qid-game-code').value=qCode;
-  return;
- }
-
- const {data,error}=await qdb.rpc('create_game_link_code',{
-  p_game_id:getGameId()
- });
-
- if(error)throw error;
-
- qCode=data;
- document.getElementById('qid-game-code').value=qCode;
-}
-
-async function checkQLink(){
- const panel=document.getElementById('qid-link');
-
- if(!panel||!qPanelActive||qLoading)return;
-
- qLoading=true;
-
- try{
-  await loadQDb();
-
-  const {data,error}=await qdb.rpc('get_game_link',{
-   p_game_id:getGameId()
-  });
-
-  if(error)throw error;
-
-  if(data&&data.length){
-   qCode=null;
-   panel.style.display='none';
-   qPanelActive=false;
-   if(qTimer)clearTimeout(qTimer);
-   toast('Połączono z QUOREK ID!');
-   return;
-  }
-
-  panel.style.display='block';
-  await createQCode();
-
- }catch(e){
-  panel.style.display='block';
-  console.error('QUOREK ID:',e);
- }finally{
-  qLoading=false;
- }
-}
-
-function scheduleQCheck(){
- if(qTimer)clearTimeout(qTimer);
- if(!qPanelActive)return;
-
- qTimer=setTimeout(async()=>{
-  await checkQLink();
-  scheduleQCheck();
- },5000);
-}
-
-document.getElementById('qid-copy').onclick=async()=>{
- if(!qCode)return;
-
- const input=document.getElementById('qid-game-code');
-
- try{
-  if(navigator.clipboard&&navigator.clipboard.writeText){
-   await navigator.clipboard.writeText(qCode);
-   toast('Kod skopiowany!');
-  }else{
-   input.focus();
-   input.select();
-   toast('Zaznacz kod i skopiuj.');
-  }
- }catch(e){
-  input.focus();
-  input.select();
-  toast('Zaznacz kod i skopiuj.');
- }
-};
 
 /* ---------- RENDER ALEI ---------- */
 function renderTR(){
@@ -424,14 +165,9 @@ mbtn.onclick=()=>{
  renderTR();
  state='select';
  show('tr');
- qPanelActive=true;
- checkQLink();
- scheduleQCheck();
 };
 
 $('#trback').onclick=()=>{
- qPanelActive=false;
- if(qTimer)clearTimeout(qTimer);
  state='menu';
  refresh();
  show('menu');
@@ -492,6 +228,5 @@ if(SV.arena>=0&&SV.arena<ARENAS.length)arenaSel=SV.arena;
 
 refresh();
 buildSelect();
-checkCloudSession();
 
 })();
