@@ -8,7 +8,7 @@ const cheat=()=>localStorage.getItem('brawlCheatOn')==='1';
 const okKey=k=>/^brawl/.test(k)&&!/^brawlCheat/.test(k)&&k!=='brawlClubChat1'&&k!==KP&&k!=='brawlQidLast'&&k!=='brawlPreImport';
 let A=jget(KA,null);
 const saveA=()=>{try{if(A)localStorage.setItem(KA,JSON.stringify(A));else localStorage.removeItem(KA);}catch(e){}};
-const cfg=()=>/^https:\/\/[a-z0-9]+\.supabase\.co$/.test(SB_URL)&&SB_KEY.length>40;
+const cfg=()=>/^https:\/\/[a-z0-9]+\.supabase\.co$/.test(SB_URL)&&SB_KEY.length>20;
 
 const tsEl=document.createElement('div');
 tsEl.style.cssText='position:fixed;bottom:14px;left:50%;transform:translateX(-50%);z-index:170;background:rgba(0,0,0,.88);color:#fff;font:700 14px Arial,sans-serif;padding:8px 14px;border-radius:12px;display:none;text-align:center;max-width:80vw';
@@ -26,7 +26,7 @@ function tr(m){
  if(/Failed to fetch|Load failed|NetworkError/i.test(m))return 'Brak połączenia z serwerem';
  return m||'Błąd';
 }
-const hdr=t=>({'apikey':SB_KEY,'Content-Type':'application/json','Authorization':'Bearer '+(t||SB_KEY)});
+const hdr=t=>{const h={'apikey':SB_KEY,'Content-Type':'application/json'};if(t)h['Authorization']='Bearer '+t;return h;};
 async function api(path,opt){
  const r=await fetch(SB_URL+path,opt);
  let j=null;try{j=await r.json();}catch(e){}
