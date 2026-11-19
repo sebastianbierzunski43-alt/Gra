@@ -1,7 +1,7 @@
 (function(){
 if(window.__p20)return;window.__p20=1;
-const SB_URL='https://TWOJ-PROJEKT.supabase.co';
-const SB_KEY='TWOJ_KLUCZ_ANON';
+const SB_URL='https://qexlzzrnkeojwknjqcxi.supabase.co/rest/v1/';
+const SB_KEY='sb_publishable_5N8zXgzGj6Z74itV7gKmnA_LO3SkCaj';
 const KA='qAuth1',KP='brawlPreImport';
 const jget=(k,d)=>{try{return JSON.parse(localStorage.getItem(k)||'null')||d;}catch(e){return d;}};
 const cheat=()=>localStorage.getItem('brawlCheatOn')==='1';
