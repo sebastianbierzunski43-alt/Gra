@@ -12,7 +12,35 @@ const need=b=>REQ[b.id]||0;
 
 let SV={tr:0,sel:0,arena:0,m:0,w:0};
 try{Object.assign(SV,JSON.parse(localStorage.getItem(KEY)||'{}'));}catch(e){}
-const save=()=>{try{localStorage.setItem(KEY,JSON.stringify(SV));}catch(e){}};
+
+let cloudReady=false;
+let cloudSyncing=false;
+let cloudTimer=null;
+let cloudQueue=Promise.resolve();
+
+function scheduleCloudSave(){
+ if(!cloudReady||cloudSyncing)return;
+ clearTimeout(cloudTimer);
+ cloudTimer=setTimeout(()=>{
+  cloudQueue=cloudQueue.then(async()=>{
+   if(!cloudReady||cloudSyncing)return;
+   try{
+    const {error}=await qdb.rpc('save_my_game_save',{
+     p_save_data:SV
+    });
+    if(error)throw error;
+   }catch(e){
+    console.error('QUOREK ID — zapis:',e);
+   }
+  });
+ },1000);
+}
+
+const save=()=>{
+ try{localStorage.setItem(KEY,JSON.stringify(SV));}catch(e){}
+ scheduleCloudSave();
+};
+
 const isOpen=i=>!!BR[i]&&SV.tr>=need(BR[i]);
 
 /* ---------- STYLE I TOAST ---------- */
@@ -143,7 +171,14 @@ function loadQDb(){
  qDbPromise=new Promise((resolve,reject)=>{
   function create(){
    try{
-    qdb=window.supabase.createClient(Q_URL,Q_KEY);
+    qdb=window.supabase.createClient(Q_URL,Q_KEY,{
+     auth:{
+      persistSession:true,
+      autoRefreshToken:true,
+      detectSessionInUrl:true,
+      storage:window.localStorage
+     }
+    });
     resolve(qdb);
    }catch(e){
     reject(e);
@@ -165,6 +200,85 @@ function loadQDb(){
  return qDbPromise;
 }
 
+/* ---------- WCZYTYWANIE I ZAPIS CHMUROWY ---------- */
+async function syncCloudSave(){
+ if(cloudSyncing)return;
+ cloudSyncing=true;
+ cloudReady=false;
+
+ try{
+  await loadQDb();
+
+  const {data:sessionData,error:sessionError}=await qdb.auth.getSession();
+  if(sessionError)throw sessionError;
+
+  if(!sessionData.session)return;
+
+  const {data,error}=await qdb.rpc('get_my_game_save');
+  if(error)throw error;
+
+  if(data&&typeof data==='object'&&!Array.isArray(data)){
+   Object.assign(SV,data);
+
+   try{
+    localStorage.setItem(KEY,JSON.stringify(SV));
+   }catch(e){}
+
+   if(SV.sel>=0&&SV.sel<BR.length&&isOpen(SV.sel))sel=SV.sel;
+   else sel=0;
+
+   if(SV.arena>=0&&SV.arena<ARENAS.length)arenaSel=SV.arena;
+
+   refresh();
+   buildSelect();
+   renderTR();
+
+   toast('Wczytano postęp z chmury!');
+  }else{
+   const {error:saveError}=await qdb.rpc('save_my_game_save',{
+    p_save_data:SV
+   });
+   if(saveError)throw saveError;
+
+   toast('Zapis gry przeniesiony do chmury!');
+  }
+
+  cloudReady=true;
+
+ }catch(e){
+  console.error('QUOREK ID — synchronizacja:',e);
+  const msg=String(e.message||e);
+
+  if(msg.includes('nie jest połączone')){
+   toast('Połącz najpierw grę z QUOREK ID.');
+  }else{
+   toast('Nie udało się zsynchronizować zapisu.');
+  }
+ }finally{
+  cloudSyncing=false;
+ }
+}
+
+async function checkCloudSession(){
+ try{
+  await loadQDb();
+
+  qdb.auth.onAuthStateChange((event,session)=>{
+   if(event==='SIGNED_IN'&&session){
+    syncCloudSave();
+   }
+   if(event==='SIGNED_OUT'){
+    cloudReady=false;
+   }
+  });
+
+  await syncCloudSave();
+ }catch(e){
+  console.error('QUOREK ID — sesja:',e);
+ }
+}
+
+/* ---------- KOD ŁĄCZENIA GRY ---------- */
 async function createQCode(){
  if(qCode){
   document.getElementById('qid-game-code').value=qCode;
@@ -378,5 +492,6 @@ if(SV.arena>=0&&SV.arena<ARENAS.length)arenaSel=SV.arena;
 
 refresh();
 buildSelect();
+checkCloudSession();
 
 })();
