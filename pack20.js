@@ -182,4 +182,5 @@ mb.onclick=()=>{state='select';show('acc');render();};
   catch(e){toast(tr(e.message));}
  },800);
 })();
+ mb.style.display='none';
 })();
