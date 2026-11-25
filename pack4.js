@@ -25,7 +25,11 @@ const GD={
  leon:['Sprint','Bardzo szybki bieg przez 4 s.',e=>{e.boost=4;}],
  crow:['Trucizna spowalniająca','Spowalnia wrogów w pobliżu na 3 s.',e=>ring(e,260,0,0,3)],
  spike:['Popcorn','Rani i spowalnia wrogów wokół.',e=>ring(e,200,500,0,1.5)],
- dynamike:['Granat','Wybuch przy sobie, rani i odrzuca wrogów.',e=>boom(e.x,e.y,120,900,e,e.team)]
+ dynamike:['Granat','Wybuch przy sobie, rani i odrzuca wrogów.',e=>boom(e.x,e.y,120,900,e,e.team)],
+ sowa:['Zimny okład','Leczy 1000 zdrowia.',e=>heal(e,1000)],
+ mlot:['Wstrząs','Odpycha i rani wrogów w pobliżu.',e=>ring(e,200,500,600,0)],
+ doktor:['Apteczka','Leczy sojuszników w pobliżu o 1500.',e=>{for(const o of G.ents)if(o.team===e.team&&!o.dead&&dist(o,e)<260)heal(o,1500);}],
+ turbo:['Turbo','Szybszy bieg przez 4 s.',e=>{e.boost=4;}]
 };
 const SPD={
  colt:['Magnum','+15% obrażeń.'],
