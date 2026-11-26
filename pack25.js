@@ -1,7 +1,7 @@
 (function(){
 if(window.__p25)return;window.__p25=1;
-const SB_URL='https://TWOJ-PROJEKT.supabase.co';
-const SB_KEY='sb_publishable_TWOJ_KLUCZ';
+const SB_URL='https://yrgtufmvihgpjrfgtdyb.supabase.co';
+const SB_KEY='sb_publishable_DVZQDDrMjlL_ZhxtCuMZkQ_S57O0Vej';
 const KT='brawlTrophyCfg1';
 const jget=(k,d)=>{try{return JSON.parse(localStorage.getItem(k)||'null')||d;}catch(e){return d;}};
 const myId=()=>(jget('brawlFriends1',{}).id||'');
