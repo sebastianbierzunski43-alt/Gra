@@ -2,7 +2,7 @@
 if(window.__p4)return;window.__p4=1;
 const K='brawlArenaSave2',K1='brawlArenaSave1';
 const UP=[20,30,50,80,120,180],GC=150,SC=250,GREQ=3,SREQ=5,MAXL=7;
-const REQ={colt:0,shelly:0,poco:16,bull:40,brock:80,leon:130,crow:190,spike:260,dynamike:350};
+const REQ={colt:0,shelly:0,poco:16,bull:40,brock:80,leon:130,crow:190,spike:260,dynamike:350,pam:60,rico:100,piper:150,primo:200,kostka:250};
 let SV={coins:100,lv:{},g:{},s:{}};
 try{const o=JSON.parse(localStorage.getItem(K)||'null');if(o)SV=Object.assign(SV,o);}catch(e){}
 SV.lv=SV.lv||{};SV.g=SV.g||{};SV.s=SV.s||{};
@@ -25,11 +25,7 @@ const GD={
  leon:['Sprint','Bardzo szybki bieg przez 4 s.',e=>{e.boost=4;}],
  crow:['Trucizna spowalniająca','Spowalnia wrogów w pobliżu na 3 s.',e=>ring(e,260,0,0,3)],
  spike:['Popcorn','Rani i spowalnia wrogów wokół.',e=>ring(e,200,500,0,1.5)],
- dynamike:['Granat','Wybuch przy sobie, rani i odrzuca wrogów.',e=>boom(e.x,e.y,120,900,e,e.team)],
- sowa:['Zimny okład','Leczy 1000 zdrowia.',e=>heal(e,1000)],
- mlot:['Wstrząs','Odpycha i rani wrogów w pobliżu.',e=>ring(e,200,500,600,0)],
- doktor:['Apteczka','Leczy sojuszników w pobliżu o 1500.',e=>{for(const o of G.ents)if(o.team===e.team&&!o.dead&&dist(o,e)<260)heal(o,1500);}],
- turbo:['Turbo','Szybszy bieg przez 4 s.',e=>{e.boost=4;}]
+ dynamike:['Granat','Wybuch przy sobie, rani i odrzuca wrogów.',e=>boom(e.x,e.y,120,900,e,e.team)]
 };
 const SPD={
  colt:['Magnum','+15% obrażeń.'],
@@ -153,10 +149,11 @@ function renderUp(){
  let h='<div class="nm">'+b.name+' <span style="font-size:.5em;color:#fff">Poziom '+L+'/'+MAXL+'</span></div>❤ '+hp+' • obrażenia +'+pc+'%<br>';
  h+=L<MAXL?'<button class="btn green small ub" id="bUp">ULEPSZ 🪙'+UP[L-1]+'</button>':'<b style="color:#7dff7d">MAKSYMALNY POZIOM</b>';
  const g=GD[id]||['Brak gadżetu','Wkrótce.',()=>{}],s=SPD[id]||['Brak star powera','Wkrótce.'];
+ const hasG=!!GD[id],hasS=!!SPD[id];
  h+='<br><b style="color:#8aff56">GADŻET:</b> '+g[0]+' – '+g[1]+'<br>';
- h+=SV.g[id]?'<b style="color:#7dff7d">✔ Posiadany</b>':(L>=GREQ?'<button class="btn blue small ub" id="bG">KUP 🪙'+GC+'</button>':'<span style="color:#ffd93b">Wymaga poziomu '+GREQ+'</span>');
+ h+=!hasG?'<span style="color:#aaa">Niedostępny</span>':SV.g[id]?'<b style="color:#7dff7d">✔ Posiadany</b>':(L>=GREQ?'<button class="btn blue small ub" id="bG">KUP 🪙'+GC+'</button>':'<span style="color:#ffd93b">Wymaga poziomu '+GREQ+'</span>');
  h+='<br><b style="color:#ffd93b">STAR POWER:</b> '+s[0]+' – '+s[1]+'<br>';
- h+=SV.s[id]?'<b style="color:#7dff7d">✔ Posiadany</b>':(L>=SREQ?'<button class="btn blue small ub" id="bS">KUP 🪙'+SC+'</button>':'<span style="color:#ffd93b">Wymaga poziomu '+SREQ+'</span>');
+ h+=!hasS?'<span style="color:#aaa">Niedostępny</span>':SV.s[id]?'<b style="color:#7dff7d">✔ Posiadany</b>':(L>=SREQ?'<button class="btn blue small ub" id="bS">KUP 🪙'+SC+'</button>':'<span style="color:#ffd93b">Wymaga poziomu '+SREQ+'</span>');
  info.innerHTML=h;
  const buy=(cost,fn)=>{if(SV.coins<cost){toast('Za mało monet! Masz 🪙'+SV.coins);return;}SV.coins-=cost;fn();save();refresh();renderUp();};
  const bu=$('#bUp');if(bu)bu.onclick=()=>buy(UP[L-1],()=>{SV.lv[id]=L+1;});
