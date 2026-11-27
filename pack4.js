@@ -152,7 +152,7 @@ function renderUp(){
  const hp=Math.round(b.hp*(1+.07*(L-1))),pc=(L-1)*7;
  let h='<div class="nm">'+b.name+' <span style="font-size:.5em;color:#fff">Poziom '+L+'/'+MAXL+'</span></div>❤ '+hp+' • obrażenia +'+pc+'%<br>';
  h+=L<MAXL?'<button class="btn green small ub" id="bUp">ULEPSZ 🪙'+UP[L-1]+'</button>':'<b style="color:#7dff7d">MAKSYMALNY POZIOM</b>';
- const g=GD[id],s=SPD[id];
+ const g=GD[id]||['Brak gadżetu','Wkrótce.',()=>{}],s=SPD[id]||['Brak star powera','Wkrótce.'];
  h+='<br><b style="color:#8aff56">GADŻET:</b> '+g[0]+' – '+g[1]+'<br>';
  h+=SV.g[id]?'<b style="color:#7dff7d">✔ Posiadany</b>':(L>=GREQ?'<button class="btn blue small ub" id="bG">KUP 🪙'+GC+'</button>':'<span style="color:#ffd93b">Wymaga poziomu '+GREQ+'</span>');
  h+='<br><b style="color:#ffd93b">STAR POWER:</b> '+s[0]+' – '+s[1]+'<br>';
