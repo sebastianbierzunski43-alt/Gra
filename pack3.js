@@ -3,7 +3,7 @@ if(window.__p3)return;window.__p3=1;
 for(let i=BR.length-1;i>=0;i--)if(BR.findIndex(b=>b.id===BR[i].id)!==i)BR.splice(i,1);
 
 const KEY='brawlArenaSave1';
-const REQ={colt:0,shelly:0,poco:16,bull:40,brock:80,leon:130,crow:190,spike:260,dynamike:350};
+const REQ={colt:0,shelly:0,poco:16,bull:40,brock:80,leon:130,crow:190,spike:260,dynamike:350,pam:60,rico:100,piper:150,primo:200,kostka:250};
 const need=b=>REQ[b.id]||0;
 let SV={tr:0,sel:0,arena:0,m:0,w:0};
 try{Object.assign(SV,JSON.parse(localStorage.getItem(KEY)||'{}'));}catch(e){}
@@ -56,7 +56,7 @@ document.body.appendChild(trs);
 
 function renderTR(){
  $('#trtot').textContent='🏆 '+SV.tr;
- const g=$('#trgrid');g.innerHTML='';g.style.gridTemplateColumns='repeat('+BR.length+',1fr)';
+ const g=$('#trgrid');g.innerHTML='';g.style.gridTemplateColumns='repeat('+Math.min(BR.length,7)+',1fr)';
  const ord=BR.map((b,i)=>i).sort((a,b)=>need(BR[a])-need(BR[b]));
  let nx=-1;ord.forEach(i=>{if(nx<0&&!isOpen(i))nx=i;});
  ord.forEach(i=>{
